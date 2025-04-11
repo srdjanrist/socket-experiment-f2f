@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  # Traefik - reverse proxy and SSL handler
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPS
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/acme.json
+      - ./traefik/traefik.yml:/traefik.yml
+    networks:
+      - web
+    depends_on:
+      - socket-app
+
+  # Your socket.io application
+  socket-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: socket-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    # Command parameters for your socket app
+    command: --url http://your-target-server:3000 --connections 50
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.socket-app.rule=Host(`f2f-experiment.tempserver.click`)"
+      - "traefik.http.routers.socket-app.entrypoints=websecure"
+      - "traefik.http.routers.socket-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.socket-app.loadbalancer.server.port=5000"
+
+networks:
+  web:
+    external: false

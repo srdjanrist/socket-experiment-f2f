@@ -35,7 +35,7 @@ program
   .parse(process.argv);
 
 const options = program.opts();
-options.connections = 3;
+options.connections = 30;
 
 // Set up timestamp logge
 const logWithTimestamp = (level, message) => {
