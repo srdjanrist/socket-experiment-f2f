@@ -35,7 +35,7 @@ program
   .parse(process.argv);
 
 const options = program.opts();
-options.connections = 10;
+options.connections = 3;
 
 // Set up timestamp logge
 const logWithTimestamp = (level, message) => {
@@ -141,7 +141,7 @@ function createSocket() {
     forceNew: true,
     query: {
       // clientId: `load-test-${socketIndex}`,
-      target_id: `${socketIndex}`,
+      target_id: `${socketIndex + 10000}`,
     },
   });
 
@@ -171,6 +171,14 @@ function createSocket() {
     logSocketEvent(`event:${eventName}`, args.length > 0 ? args[0] : null);
   });
 
+  // Listen for server response
+  socket.on("server_response", (data) => {
+    logWithTimestamp(
+      1,
+      `Socket ${socketIndex} received server response: ${JSON.stringify(data)}`
+    );
+  });
+
   socket.on("connect", () => {
     stats.connected++;
     socketData.state = "connected";
@@ -180,6 +188,20 @@ function createSocket() {
       1,
       `Socket ${socketIndex} connected in ${connectTime}ms (${stats.connected}/${options.connections})`
     );
+
+    // Send 3 messages with the requested format
+    for (let subindex = 1; subindex <= 3; subindex++) {
+      const message = {
+        id: `${socketIndex}-${subindex}`,
+      };
+      logWithTimestamp(
+        1,
+        `Socket ${socketIndex} sending message ${subindex}/3: ${JSON.stringify(
+          message
+        )}`
+      );
+      socket.emit("test", message);
+    }
 
     if (stats.connected % 10 === 0 || stats.connected === options.connections) {
       logWithTimestamp(
